@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS users (
     display_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
+    CONSTRAINT pk_users PRIMARY KEY (id),
     CONSTRAINT uq_users_email UNIQUE (email)
 );
 
@@ -16,6 +17,7 @@ CREATE TABLE IF NOT EXISTS todo_lists (
     name VARCHAR(255) NOT NULL,
     is_shared BOOLEAN NOT NULL DEFAULT false,
     archived_at TIMESTAMPTZ,
+    CONSTRAINT pk_todo_lists PRIMARY KEY (id),
     CONSTRAINT fk_todo_lists_owner_id FOREIGN KEY (owner_id) REFERENCES users(id)
 );
 
@@ -29,6 +31,7 @@ CREATE TABLE IF NOT EXISTS todos (
     due_date DATE,
     completed_at TIMESTAMPTZ,
     is_deleted BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT pk_todos PRIMARY KEY (id),
     CONSTRAINT fk_todos_list_id FOREIGN KEY (list_id) REFERENCES todo_lists(id),
     CONSTRAINT fk_todos_created_by FOREIGN KEY (created_by) REFERENCES users(id),
     CONSTRAINT chk_todos_status CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),

@@ -8,6 +8,7 @@ Writes:
   generated/pydantic_models.py
   dbt/models/schema.yml
 """
+import re
 import sys
 from pathlib import Path
 import yaml
@@ -109,6 +110,15 @@ def generate_ddl(model: dict) -> str:
                 if c not in constraints:
                     constraints.append(c)
 
+        # Identify primary key: first uuid NOT NULL column (always 'id' by convention)
+        pk_col = next(
+            (name for name, col_def in entity["attributes"].items()
+             if _spec(col_def).get("type") == "uuid" and not _spec(col_def).get("nullable", False)),
+            None,
+        )
+        if pk_col:
+            constraints.insert(0, f"    CONSTRAINT pk_{table} PRIMARY KEY ({pk_col})")
+
         body = ",\n".join(cols + constraints)
         lines += [f"CREATE TABLE IF NOT EXISTS {table} (", body, ");\n"]
 
@@ -171,7 +181,8 @@ def generate_pydantic(model: dict) -> str:
 
 
 def generate_dbt_schema(model: dict) -> str:
-    domain = model.get("domain", "app").lower()
+    _raw = model.get("domain", "app")
+    domain = re.sub(r"(?<!^)(?=[A-Z])", "_", _raw).lower()
     tables = []
 
     for entity_name, entity in model["entities"].items():
@@ -212,16 +223,6 @@ def generate_dbt_schema(model: dict) -> str:
                 columns.append({"name": col_name, "tests": tests})
 
         table_entry: dict = {"name": table_name, "columns": columns}
-
-        custom_tests = [
-            t["custom"]
-            for t in entity.get("tests", [])
-            if isinstance(t, dict) and "custom" in t
-        ]
-        if custom_tests:
-            table_entry["tests"] = [
-                {ct["name"]: {"sql": ct["sql"].strip()}} for ct in custom_tests
-            ]
 
         tables.append(table_entry)
 

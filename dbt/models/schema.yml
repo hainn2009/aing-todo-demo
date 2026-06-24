@@ -1,6 +1,6 @@
 version: 2
 sources:
-- name: todoapp
+- name: todo_app
   schema: public
   tables:
   - name: users
@@ -27,7 +27,7 @@ sources:
       tests:
       - not_null
       - relationships:
-          to: source('todoapp', 'users')
+          to: source('todo_app', 'users')
           field: id
     - name: name
       tests:
@@ -41,13 +41,13 @@ sources:
       tests:
       - not_null
       - relationships:
-          to: source('todoapp', 'todo_lists')
+          to: source('todo_app', 'todo_lists')
           field: id
     - name: created_by
       tests:
       - not_null
       - relationships:
-          to: source('todoapp', 'users')
+          to: source('todo_app', 'users')
           field: id
     - name: title
       tests:

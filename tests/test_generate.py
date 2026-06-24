@@ -119,7 +119,7 @@ def test_dbt_schema_version():
 def test_dbt_schema_source_name():
     raw = generate_dbt_schema(MINIMAL_MODEL)
     data = yaml.safe_load(raw)
-    assert data["sources"][0]["name"] == "testapp"
+    assert data["sources"][0]["name"] == "test_app"
 
 def test_dbt_not_null_test_on_non_nullable_col():
     raw = generate_dbt_schema(MINIMAL_MODEL)
