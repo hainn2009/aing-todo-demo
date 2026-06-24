@@ -1,0 +1,161 @@
+# semantic/semantic_model.yaml
+# HUMAN-MAINTAINED — single source of truth for domain model
+# Business rules have IDs (BR-xxx) — referenced by services/ in code comments
+version: "1.0"
+domain: TodoApp
+description: "Semantic model cho ứng dụng quản lý công việc cá nhân"
+
+entities:
+
+  User:
+    description: "Người dùng đã đăng ký"
+    source_table: users
+    attributes:
+      id:           { type: uuid,      nullable: false }
+      email:        { type: string,    nullable: false, unique: true, max_length: 255 }
+      display_name: { type: string,    nullable: false, max_length: 255 }
+      created_at:   { type: timestamp, nullable: false }
+      is_active:
+        type: boolean
+        default: true
+        description: "false = suspended. Không phải đã xóa — xóa là không tồn tại"
+    business_rules:
+      - id: BR-U01
+        rule: "Email unique kể cả với tài khoản đã deactivate"
+        rationale: "Tránh conflict nếu user reactivate tài khoản cũ"
+      - id: BR-U02
+        rule: "Không hard-delete user — chỉ set is_active = false"
+        rationale: "Foreign key integrity và audit trail"
+    tests:
+      - unique: [email]
+      - not_null: [id, email, display_name, created_at]
+
+  TodoList:
+    description: "Nhóm các todo theo chủ đề hoặc dự án"
+    source_table: todo_lists
+    attributes:
+      id:        { type: uuid,   nullable: false }
+      owner_id:  { type: uuid,   nullable: false, references: User.id }
+      name:      { type: string, nullable: false, max_length: 255 }
+      is_shared:
+        type: boolean
+        default: false
+        description: "true = collaborators có thể sửa"
+      archived_at:
+        type: timestamp
+        nullable: true
+        description: "null = active. non-null = đã archive, chỉ đọc"
+    business_rules:
+      - id: BR-L01
+        rule: "List đã archive (archived_at IS NOT NULL) không được thêm todo mới"
+        rationale: "Archive = lưu lịch sử, không phải xóa"
+      - id: BR-L02
+        rule: "Owner không thể bị xóa khỏi collaborator list của chính mình"
+    tests:
+      - not_null: [id, owner_id, name]
+      - custom:
+          name: "no_new_todo_in_archived_list"
+          sql: |
+            SELECT t.id FROM todos t
+            JOIN todo_lists l ON t.list_id = l.id
+            WHERE l.archived_at IS NOT NULL
+              AND t.created_at > l.archived_at
+          expect: empty
+
+  Todo:
+    description: "Đơn vị công việc, thuộc về một list"
+    source_table: todos
+    attributes:
+      id:         { type: uuid,   nullable: false }
+      list_id:    { type: uuid,   nullable: false, references: TodoList.id }
+      created_by: { type: uuid,   nullable: false, references: User.id }
+      title:      { type: string, nullable: false, max_length: 500 }
+      status:
+        type: enum
+        values: [pending, in_progress, completed, cancelled]
+        default: pending
+      priority:
+        type: enum
+        values: [low, medium, high, critical]
+        default: medium
+      due_date:
+        type: date
+        nullable: true
+        description: "null = không deadline"
+      completed_at:
+        type: timestamp
+        nullable: true
+        description: "System tự set khi status → completed. Không nhận từ API input"
+      is_deleted:
+        type: boolean
+        default: false
+        description: "Soft delete — không bao giờ dùng DELETE SQL"
+    business_rules:
+      - id: BR-T01
+        rule: "Khi status = completed, title và due_date không được phép thay đổi"
+        rationale: "completed todo là bằng chứng — bảo toàn tính toàn vẹn lịch sử"
+      - id: BR-T02
+        rule: "completed_at chỉ được set bởi system, không phải API input"
+      - id: BR-T03
+        rule: "Todo trong list đã archive không được đổi status"
+        depends_on: BR-L01
+      - id: BR-T04
+        rule: "due_date khi tạo mới không được là ngày trong quá khứ"
+        exception: "Import từ hệ thống cũ: cho phép nếu is_imported = true"
+    tests:
+      - not_null: [id, list_id, created_by, title, status]
+      - accepted_values:
+          column: status
+          values: [pending, in_progress, completed, cancelled]
+      - custom:
+          name: "completed_must_have_completed_at"
+          sql: "SELECT id FROM todos WHERE status = 'completed' AND completed_at IS NULL"
+          expect: empty
+      - custom:
+          name: "non_completed_must_not_have_completed_at"
+          sql: "SELECT id FROM todos WHERE status != 'completed' AND completed_at IS NOT NULL"
+          expect: empty
+
+computed_concepts:
+
+  OverdueTodo:
+    description: "Todo quá hạn — có deadline đã qua nhưng chưa kết thúc"
+    formula: >
+      due_date IS NOT NULL
+      AND due_date < CURRENT_DATE
+      AND status NOT IN ('completed', 'cancelled')
+    rationale: "cancelled không tính overdue"
+
+  CompletionRate:
+    description: "Tỷ lệ hoàn thành của một list"
+    formula: "COUNT(status = 'completed') / NULLIF(COUNT(status != 'cancelled'), 0)"
+    scope: per_list
+
+  ActiveTodo:
+    description: "Filter mặc định — todo đang trong vòng đời active"
+    formula: "is_deleted = false AND status NOT IN ('completed', 'cancelled')"
+
+glossary:
+  "hoàn thành":
+    maps_to: "status = 'completed'"
+    NOT: "is_deleted = true — đó là XÓA"
+  "công việc đang có":
+    maps_to: computed_concept.ActiveTodo
+  "quá hạn":
+    maps_to: computed_concept.OverdueTodo
+  "xóa":
+    maps_to: "is_deleted = true"
+    NOT: "SQL DELETE statement"
+
+relationships:
+  UserOwnsList:
+    from: User
+    to: TodoList
+    type: one_to_many
+    via: TodoList.owner_id
+  ListContainsTodo:
+    from: TodoList
+    to: Todo
+    type: one_to_many
+    via: Todo.list_id
+    semantics: "Khi list bị archive, toàn bộ todo trong đó không được đổi status"
