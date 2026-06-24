@@ -1,0 +1,12 @@
+name: todo_app
+version: '1.0.0'
+config-version: 2
+
+profile: todo_app
+
+model-paths: ["models"]
+test-paths: ["tests"]
+
+models:
+  todo_app:
+    +materialized: view

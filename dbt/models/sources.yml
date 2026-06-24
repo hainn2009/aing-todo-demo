@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: todo_app
+    schema: public
+    tables:
+      - name: users
+      - name: todo_lists
+      - name: todos
