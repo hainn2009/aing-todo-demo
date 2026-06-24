@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.env
+dbt/profiles.yml
+.venv/
+*.egg-info/
