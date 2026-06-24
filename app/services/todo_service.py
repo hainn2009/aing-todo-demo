@@ -143,7 +143,7 @@ def update_todo(
 
 
 def soft_delete_todo(conn: psycopg2.extensions.connection, todo_id: str) -> dict | None:
-    # Soft delete only — NEVER SQL DELETE on todos (BR-U02 / semantic model constraint)
+    # Soft delete only — NEVER SQL DELETE on todos (semantic model: is_deleted = soft delete)
     with conn.cursor() as cur:
         cur.execute(
             """
