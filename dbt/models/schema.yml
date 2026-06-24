@@ -1,0 +1,81 @@
+version: 2
+sources:
+- name: todoapp
+  schema: public
+  tables:
+  - name: users
+    columns:
+    - name: id
+      tests:
+      - not_null
+    - name: email
+      tests:
+      - unique
+      - not_null
+    - name: display_name
+      tests:
+      - not_null
+    - name: created_at
+      tests:
+      - not_null
+  - name: todo_lists
+    columns:
+    - name: id
+      tests:
+      - not_null
+    - name: owner_id
+      tests:
+      - not_null
+      - relationships:
+          to: source('todoapp', 'users')
+          field: id
+    - name: name
+      tests:
+      - not_null
+    tests:
+    - no_new_todo_in_archived_list:
+        sql: "SELECT t.id FROM todos t\nJOIN todo_lists l ON t.list_id = l.id\nWHERE\
+          \ l.archived_at IS NOT NULL\n  AND t.created_at > l.archived_at"
+  - name: todos
+    columns:
+    - name: id
+      tests:
+      - not_null
+    - name: list_id
+      tests:
+      - not_null
+      - relationships:
+          to: source('todoapp', 'todo_lists')
+          field: id
+    - name: created_by
+      tests:
+      - not_null
+      - relationships:
+          to: source('todoapp', 'users')
+          field: id
+    - name: title
+      tests:
+      - not_null
+    - name: status
+      tests:
+      - not_null
+      - accepted_values:
+          values:
+          - pending
+          - in_progress
+          - completed
+          - cancelled
+    - name: priority
+      tests:
+      - accepted_values:
+          values:
+          - low
+          - medium
+          - high
+          - critical
+    tests:
+    - completed_must_have_completed_at:
+        sql: SELECT id FROM todos WHERE status = 'completed' AND completed_at IS NULL
+    - non_completed_must_not_have_completed_at:
+        sql: SELECT id FROM todos WHERE status != 'completed' AND completed_at IS
+          NOT NULL
