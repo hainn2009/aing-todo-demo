@@ -96,10 +96,10 @@ def update_todo(
         current_status = row[4]
         list_archived_at = row[9]
 
-        # BR-T01: completed todo cannot change title or status
-        if current_status == "completed" and (title is not None or status is not None):
+        # BR-T01: completed todo cannot change title, due_date, or status
+        if current_status == "completed" and (title is not None or status is not None or due_date is not None):
             raise PermissionError(
-                "Cannot modify completed todo title or status (BR-T01)"
+                "Cannot modify completed todo title, due_date, or status (BR-T01)"
             )
 
         # BR-T03: todo in archived list cannot change status

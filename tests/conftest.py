@@ -26,9 +26,7 @@ def clean_db(db_conn):
     yield
     db_conn.rollback()
     with db_conn.cursor() as cur:
-        cur.execute("DELETE FROM todos")
-        cur.execute("DELETE FROM todo_lists")
-        cur.execute("DELETE FROM users")
+        cur.execute("TRUNCATE todos, todo_lists, users CASCADE")
     db_conn.commit()
 
 
