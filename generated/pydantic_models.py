@@ -13,7 +13,7 @@ class User(BaseModel):
     email: str = Field(max_length=255)
     display_name: str = Field(max_length=255)
     created_at: datetime = ...
-    is_active: Optional[bool] = Field(default=true)
+    is_active: Optional[bool] = Field(default=True)
 
 class TodoList(BaseModel):
     # BR-L01: List đã archive (archived_at IS NOT NULL) không được thêm todo mới
@@ -21,7 +21,7 @@ class TodoList(BaseModel):
     id: UUID = ...
     owner_id: UUID = ...
     name: str = Field(max_length=255)
-    is_shared: Optional[bool] = Field(default=false)
+    is_shared: Optional[bool] = Field(default=False)
     archived_at: Optional[datetime] = Field(default=None)
 
 class Todo(BaseModel):
@@ -37,4 +37,4 @@ class Todo(BaseModel):
     priority: Optional[Literal['low', 'medium', 'high', 'critical']] = Field(default='medium')
     due_date: Optional[date] = Field(default=None)
     completed_at: Optional[datetime] = Field(default=None)
-    is_deleted: Optional[bool] = Field(default=false)
+    is_deleted: Optional[bool] = Field(default=False)

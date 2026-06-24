@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL,
     display_name VARCHAR(255) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL,
-    is_active BOOLEAN DEFAULT true,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     CONSTRAINT uq_users_email UNIQUE (email)
 );
 
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS todo_lists (
     id UUID NOT NULL,
     owner_id UUID NOT NULL,
     name VARCHAR(255) NOT NULL,
-    is_shared BOOLEAN DEFAULT false,
+    is_shared BOOLEAN NOT NULL DEFAULT false,
     archived_at TIMESTAMPTZ,
     CONSTRAINT fk_todo_lists_owner_id FOREIGN KEY (owner_id) REFERENCES users(id)
 );
@@ -24,11 +24,11 @@ CREATE TABLE IF NOT EXISTS todos (
     list_id UUID NOT NULL,
     created_by UUID NOT NULL,
     title VARCHAR(500) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending',
-    priority VARCHAR(50) DEFAULT 'medium',
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    priority VARCHAR(50) NOT NULL DEFAULT 'medium',
     due_date DATE,
     completed_at TIMESTAMPTZ,
-    is_deleted BOOLEAN DEFAULT false,
+    is_deleted BOOLEAN NOT NULL DEFAULT false,
     CONSTRAINT fk_todos_list_id FOREIGN KEY (list_id) REFERENCES todo_lists(id),
     CONSTRAINT fk_todos_created_by FOREIGN KEY (created_by) REFERENCES users(id),
     CONSTRAINT chk_todos_status CHECK (status IN ('pending', 'in_progress', 'completed', 'cancelled')),

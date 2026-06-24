@@ -54,7 +54,7 @@ def _pg_col(name: str, spec: dict) -> str:
     else:
         pg_type = PG_TYPE_MAP.get(col_type, "TEXT")
 
-    null_str = " NOT NULL" if not spec.get("nullable", True) else ""
+    null_str = " NOT NULL" if not spec.get("nullable", False) else ""
 
     default = spec.get("default")
     if default is None:
@@ -152,7 +152,7 @@ def generate_pydantic(model: dict) -> str:
             field_args = []
             if default is not None:
                 if isinstance(default, bool):
-                    field_args.append(f"default={str(default).lower()}")
+                    field_args.append(f"default={default}")
                 elif isinstance(default, str):
                     field_args.append(f"default='{default}'")
                 else:
